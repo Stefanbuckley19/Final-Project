@@ -1,4 +1,4 @@
-TITLE = "jumpy"
+TITLE = "STEF bounce"
 # screen dims
 WIDTH = 480
 HEIGHT = 600
@@ -8,7 +8,7 @@ FPS = 60
 WHITE = (255, 255, 255)
 BLACK = (0,0,0)
 REDDISH = (240,55,66)
-SKY_BLUE = (143, 185, 252)
+SKY_BLUE = (0, 0, 0)
 FONT_NAME = 'arial'
 SPRITESHEET = "spritesheet_jumper.png"
 # data files
@@ -16,17 +16,21 @@ HS_FILE = "highscore.txt"
 # player settings
 PLAYER_ACC = 0.5
 PLAYER_FRICTION = -0.12
+# gravity that is effecting player
 PLAYER_GRAV = 0.8
-PLAYER_JUMP = 20
+# height of the players jump
+PLAYER_JUMP = 25
 # game settings
 BOOST_POWER = 60
+# the percentage that the powerups spawn
 POW_SPAWN_PCT = 7
 MOB_FREQ = 5000
-# layers = gives numerical values to the layers to portray which ones can interact with each other
 PLAYER_LAYER = 2
 PLATFORM_LAYER = 1
+MPLATFORM_LAYER = 1
 POW_LAYER = 1
 MOB_LAYER = 2
+#SPRITES INT HE SAME LAYER CAN INTERACT WITH EACH OTHER (COLISONS)
 
 # platform settings
 ''' old platforms from drawing rectangles'''
@@ -42,3 +46,7 @@ PLATFORM_LIST = [(0, HEIGHT - 40),
                  (20, HEIGHT - 350),
                  (200, HEIGHT - 150),
                  (200, HEIGHT - 450)]
+MPLATFORM_LIST = [(10, HEIGHT - 20),
+                 (30, HEIGHT - 500),
+                 (20, HEIGHT - 27)]
+                

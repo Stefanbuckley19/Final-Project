@@ -17,12 +17,12 @@ class Spritesheet:
     # class for loading and parsing sprite sheets
     def __init__(self, filename):
         self.spritesheet = pg.image.load(filename).convert()
+        #give you the specifivc sprite sheet
     def get_image(self, x, y, width, height):
         image = pg.Surface((width, height))
         image.blit(self.spritesheet, (0,0), (x, y, width, height))
         image = pg.transform.scale(image, (width // 2, height // 2))
         return image
-        # this class uses the spritesheet to create the images on the game screen
 class Player(Sprite):
     def __init__(self, game):
         # allows layering in LayeredUpdates sprite group - thanks pygame!
@@ -71,9 +71,11 @@ class Player(Sprite):
 
         keys = pg.key.get_pressed()
         if keys[pg.K_a]:
-            self.acc.x =  -PLAYER_ACC
+            self.acc.x = -PLAYER_ACC
         if keys[pg.K_d]:
             self.acc.x = PLAYER_ACC
+       
+            
         # set player friction
         self.acc.x += self.vel.x * PLAYER_FRICTION
         # equations of motion
@@ -97,10 +99,20 @@ class Player(Sprite):
         print("jump is working")
         # check pixel below
         self.rect.y += 2
+        mhits = pg.sprite.spritecollide(self, self.game.mplatforms, False)
+      
         hits = pg.sprite.spritecollide(self, self.game.platforms, False)
         # adjust based on checked pixel
         self.rect.y -= 2
-        # only allow jumping if player is on platform
+        # only allow jumping if player is on platform or mplatform
+        if mhits and not self.jumping:
+            # play sound only when space bar is hit and while not jumping
+            self.game.jump_sound[choice([0,1])].play()
+            # tell the program that player is currently jumping
+            self.jumping = True
+            self.vel.y = -PLAYER_JUMP
+            print(self.acc.y)
+
         if hits and not self.jumping:
             # play sound only when space bar is hit and while not jumping
             self.game.jump_sound[choice([0,1])].play()
@@ -108,6 +120,14 @@ class Player(Sprite):
             self.jumping = True
             self.vel.y = -PLAYER_JUMP
             print(self.acc.y)
+        self.rect.y += 2
+        mhits = pg.sprite.spritecollide(self, self.game.mplatforms, False)
+      
+        hits = pg.sprite.spritecollide(self, self.game.platforms, False)
+        # adjust based on checked pixel
+        self.rect.y -= 2
+        # only allow jumping if player is on platform or mplatform
+
     def animate(self):
         # gets time in miliseconds
         now = pg.time.get_ticks()
@@ -137,7 +157,7 @@ class Player(Sprite):
                 self.image = self.standing_frames[self.current_frame]
                 self.rect = self.image.get_rect()
                 self.rect.bottom = bottom
-
+    
 
 
 class Platform(Sprite):
@@ -148,6 +168,7 @@ class Platform(Sprite):
         self.groups = game.all_sprites, game.platforms
         Sprite.__init__(self, self.groups)
         self.game = game
+        # the two types of platform images that are used
         images = [self.game.spritesheet.get_image(0, 288, 380, 94), 
                   self.game.spritesheet.get_image(213, 1662, 201, 100)]
         self.image = random.choice(images)
@@ -158,9 +179,43 @@ class Platform(Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+        self.ground_level = False
+        #re ordered the self, and self.game
         if random.randrange(100) < POW_SPAWN_PCT:
             Pow(self.game, self)
-
+        # if random.randrange(100) < POW_SPAWN_PCT:
+        #     Coin(self, self.game, self.coins)
+# new class for moving platforms 
+class Mplatform(Sprite):
+    def __init__(self, game, x, y):
+        # allows layering in LayeredUpdates sprite group
+        self._layer = MPLATFORM_LAYER
+        # add Platforms to game groups when instantiated
+        self.groups = game.all_sprites, game.mplatforms
+        Sprite.__init__(self, self.groups)
+        self.game = game
+        # the types of platform images that are used for moving platforms
+        images = [self.game.spritesheet.get_image(0, 384, 380, 94), 
+                  self.game.spritesheet.get_image(0, 1056, 380, 94)]
+        self.image = random.choice(images)
+        self.image.set_colorkey(BLACK)
+        '''leftovers from random rectangles before images'''
+        # self.image = pg.Surface((w,h))
+        # self.image.fill(WHITE)
+        self.rect = self.image.get_rect()
+        self.rect.x = randrange(WIDTH - self.rect.width)
+        self.rect.y = randrange(-500, -50)
+        #making platforms spawn going either right or left
+        self.speed = randrange(1,3)
+        self.ground_level = False
+    def update(self):
+        if self.rect.top > HEIGHT * 2: 
+            self.kill
+        
+        self.rect.x += self.speed
+        if self.rect.x > WIDTH:
+            self.rect.x = -self.rect.width
+     
 class Pow(Sprite):
     def __init__(self, game, plat):
         # allows layering in LayeredUpdates sprite group
@@ -181,6 +236,23 @@ class Pow(Sprite):
         # checks to see if plat is in the game's platforms group so we can kill the powerup instance
         if not self.game.platforms.has(self.plat):
             self.kill()
+# class Coin(Sprite):
+#     def __int__(self, game, plat, coins):
+#         self.layer = POW_LAYER
+#         self.groups = game.all_sprites, game.coins
+#         Sprite.__init__(self, self.groups, self.coins)
+#         self.game = game
+#         self.plat = plat
+#         self.image = self.game.spritesheet.get_image(244,1981,61,61)
+#         self.image.set_colorkey(BLACK)
+#         self.rect = self.image.get_rect()
+#         self.rect.centerx = self.plat.rect.centerx
+#         self.rect.bottom = self.plat.rect.top - 5
+#     def update(self):
+#         self.rect.bottom = self.plat.rect.top - 5
+#         if not self.game.platforms.has(self.plat):
+#             self.kill()
+
 
 class Mob(Sprite):
     def __init__(self, game):

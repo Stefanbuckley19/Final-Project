@@ -1,4 +1,5 @@
 # this file was created by Chris Cozort
+# Code assistance by the great Surya Chandra
 '''Sources: goo.gl/2KMivS 
 Source: https://stackoverflow.com/questions/22235607/creating-fighting-system-in-very-simple-python-game'''
 
@@ -7,8 +8,25 @@ Source: https://stackoverflow.com/questions/22235607/creating-fighting-system-in
 '''
 Curious, Creative, Tenacious(requires hopefulness)
 
-Game ideas:
-Walls closing in on player
+**********Game ideas:
+Create hit points for my player to try and prevent
+instant death
+        Could not get hitpoints to work in code
+        
+
+Create coins to collect by my player
+        Unfortunately I worked on coins for a while and was not able
+        to get it running. Commented code that could be commented out and deleted the other code
+
+Add a new background into the game
+        Changed the background of the game to a red color
+
+Moving Platforms
+        I was able to create moving platforms with the assistance of classmate Surya Chandra
+
+
+
+
 
 '''
 import pygame as pg
@@ -23,10 +41,10 @@ class Game:
         #init game window
         # init pygame and create window
         pg.init()
-        # init sound mixer  
+        # init sound mixer
         pg.mixer.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
-        pg.display.set_caption("jumpy")
+        pg.display.set_caption("Stefhob")
         self.clock = pg.time.Clock()
         self.running = True
         self.font_name = pg.font.match_font(FONT_NAME)
@@ -62,14 +80,19 @@ class Game:
     def new(self):
         self.score = 0
         # add all sprites to the pg group
-        # below no longer needed - using LayeredUpdate group
+        # below no longer needed - using LayerewdUpdate group
         # self.all_sprites = pg.sprite.Group()
         self.all_sprites = pg.sprite.LayeredUpdates()
         # create platforms group
         self.platforms = pg.sprite.Group()
         # add powerups
         self.powerups = pg.sprite.Group()
-        self.Coin = pg.sprite.Group()
+
+        # create Moving platforms group (repurpusing as much of the existing platform code as possible)
+        # self.mplatforms are the moving platforms
+        self.mplatforms = pg.sprite.Group()
+        # self.coin
+        # self.coins = pg.sprite.Group()
         self.mob_timer = 0
         # add a player 1 to the group
         self.player = Player(self)
@@ -85,7 +108,18 @@ class Game:
             # no longer needed because we pass in Sprite lib file
             # self.all_sprites.add(p)
             # self.platforms.add(p)
+        
+        #moving platform list
+        for mplat in MPLATFORM_LIST:
+        #spawning moving platforms
+            Mplatform(self, *mplat)
+            # no longer needed because we pass in Sprite lib file
+            # self.all_sprites.add(p)
+            # self.platforms.add(p)
+        
+    
         # load music
+
         pg.mixer.music.load(path.join(self.snd_dir, 'happy.ogg'))
         # call the run method
         self.run()
@@ -107,7 +141,7 @@ class Game:
         # shall we spawn a mob?
         now = pg.time.get_ticks()
         if now - self.mob_timer > 5000 + random.choice([-1000, -500, 0, 500, 1000]):
-            self.mob_timer = now
+            self.mob_timer = now    
             Mob(self)
         # check for mob collisions
         mob_hits = pg.sprite.spritecollide(self.player, self.mobs, False)
@@ -138,6 +172,22 @@ class Game:
                         self.player.pos.y = find_lowest.rect.top
                         self.player.vel.y = 0
                         self.player.jumping = False
+            #using code from platforms for moving platforms 
+            # this is the same code except hits was changed with mhits for moving hits
+            mhits = pg.sprite.spritecollide(self.player, self.mplatforms, False)
+            if mhits:
+                # set var to be current hit in list to find which to 'pop' to when two or more collide with player
+                find_lowest = mhits[0]
+                for mhit in mhits:
+                    if mhit.rect.bottom > find_lowest.rect.bottom:
+                        print("hit rect bottom " + str(mhit.rect.bottom))
+                        find_lowest = mhit
+                # fall if center is off platform
+                if self.player.pos.x < find_lowest.rect.right + 10 and self.player.pos.x > find_lowest.rect.left - 10:
+                    if self.player.pos.y < find_lowest.rect.centery:
+                        self.player.pos.y = find_lowest.rect.top
+                        self.player.vel.y = 0
+                        self.player.jumping = False
                 # scroll plats with player
         if self.player.rect.top <= HEIGHT / 4:
             # creates slight scroll at the top based on player y velocity
@@ -146,11 +196,23 @@ class Game:
             for mob in self.mobs:
                 # creates slight scroll based on player y velocity
                 mob.rect.y += max(abs(self.player.vel.y), 2)
+            # defining coins for self.coins
+            # for coins in self.coins:
+            #     # creates a scroll based on the y velocty of the player
+            #     coins.rect.x -= self.player.x
+            
             for plat in self.platforms:
                 # creates slight scroll based on player y velocity
                 plat.rect.y += max(abs(self.player.vel.y), 2)
                 if plat.rect.top >= HEIGHT + 40:
                     plat.kill()
+                    self.score += 10
+            # once again, same code used from platform for moving platforms
+            for mplat in self.mplatforms:
+                # creates slight scroll based on player y velocity
+                mplat.rect.y += max(abs(self.player.vel.y), 2)
+                if mplat.rect.top >= HEIGHT + 40:
+                    mplat.kill()
                     self.score += 10
         # if player hits a power up
         pow_hits = pg.sprite.spritecollide(self.player, self.powerups, True)
@@ -159,17 +221,14 @@ class Game:
                 self.boost_sound.play()
                 self.player.vel.y = -BOOST_POWER
                 self.player.jumping = False
-    ''' At this point I tried to add coins into the game so my player
-    can collect them.'''    
-        Coin_hits = pg.sprite.spritecollide(self.player, self.Coin, True)
-        for Coin in Coin_hits:
-            if Coin.type == 'Coin':
-                self.boost_sound.play()
-                self.player.vel.y = -10
-                self.player.jumping = False 
-                self.score += 20  
-            for Coin in self.Coin:
-                Coin.rect.y -= max(self.player.vel.y, 2)
+        # adding coin_hits and coin.type into Main
+        # coin_hits = pg.sprite.spritecollide(self.player, self.coins, True)
+        # if coin_hits:
+        #     if self.player.vel.y > 0 and self.player.pos.y > coin_hits[0].rect.top:
+        #         print("collect")
+        #         print("player is " + str(self.player.pos.y))
+        #         print("mob is " + str(coin_hits[0].rect.top))
+        
         # Die!
         if self.player.rect.bottom > HEIGHT:
             for sprite in self.all_sprites:
@@ -189,6 +248,20 @@ class Game:
                             random.randrange(-75, -30))
             # self.platforms.add(p)
             # self.all_sprites.add(p)
+        if len(self.mplatforms) == 0:
+            self.playing = False
+        # generate new random moving platforms
+        while len(self.mplatforms) < 6:
+            width = random.randrange(50, 100)
+            # changed due to passing into groups through sprites lib file
+            # p = Platform(self, random.randrange(0,WIDTH-width), 
+            #                 random.randrange(-75, -30))
+            Mplatform(self, random.randrange(0,WIDTH-width), 
+                            random.randrange(-80, -30))
+            # self.platforms.add(p)
+            # self.all_sprites.add(p)
+        
+        
     def events(self):
         for event in pg.event.get():
                 if event.type == pg.QUIT:
@@ -196,14 +269,14 @@ class Game:
                         self.playing = False
                     self.running = False
                 if event.type == pg.KEYDOWN:
-                    if event.key == pg.K_SPACE:
+                    if event.key == pg.K_w:
                         self.player.jump()
                 if event.type == pg.KEYUP:
-                    if event.key == pg.K_SPACE:
-                        # cuts the jump short if the space bar is released
+                    if event.key == pg.K_w:                     # cuts the jump short if the space bar is released
                         self.player.jump_cut()
+
     def draw(self):
-        self.screen.fill(SKY_BLUE)
+        self.screen.fill(REDDISH)
         self.all_sprites.draw(self.screen)
         # not needed now that we're using LayeredUpdates
         # self.screen.blit(self.player.image, self.player.rect)
@@ -222,11 +295,11 @@ class Game:
                     waiting = False
     def show_start_screen(self):
         # game splash screen
-        self.screen.fill(BLACK)
+        self.screen.fill(REDDISH)
         self.draw_text(TITLE, 48, WHITE, WIDTH/2, HEIGHT/4)
-        self.draw_text("WASD to move, Space to jump", 22, WHITE, WIDTH/2, HEIGHT/2)
-        self.draw_text("Press any key to play...", 22, WHITE, WIDTH / 2, HEIGHT * 3/4)
-        self.draw_text("High score " + str(self.highscore), 22, WHITE, WIDTH / 2, 15)
+        self.draw_text("Use WASD to move player", 22, WHITE, WIDTH/2, HEIGHT/2)
+        self.draw_text("Press key to play...", 22, WHITE, WIDTH / 2, HEIGHT * 3/4)
+        self.draw_text("BEST score " + str(self.highscore), 22, WHITE, WIDTH / 2, 15)
         pg.display.flip()
         self.wait_for_key()
     def show_go_screen(self):
@@ -234,10 +307,10 @@ class Game:
         if not self.running:
             print("not running...")
             return
-        self.screen.fill(BLACK)
+        self.screen.fill(REDDISH)
         self.draw_text(TITLE, 48, WHITE, WIDTH/2, HEIGHT/4)
-        self.draw_text("WASD to move, Space to jump", 22, WHITE, WIDTH/2, HEIGHT/2)
-        self.draw_text("Press any key to play...", 22, WHITE, WIDTH / 2, HEIGHT * 3/4)
+        self.draw_text("USE WASD to move", 22, WHITE, WIDTH/2, HEIGHT/2)
+        selfwwwww.draw_text("Press any key to play...", 22, WHITE, WIDTH / 2, HEIGHT * 3/4)
         self.draw_text("High score " + str(self.highscore), 22, WHITE, WIDTH / 2, HEIGHT/2 + 40)
         if self.score > self.highscore:
             self.highscore = self.score
@@ -257,44 +330,6 @@ class Game:
         text_rect = text_surface.get_rect()
         text_rect.midtop = (x, y)
         self.screen.blit(text_surface, text_rect)
-
-''' Here I am trying to add hitpoint to my player and to the mob, so Player
-can hit the mob without dying. Also, i'm using code that allows Player
-to destroy the Mob.'''
-# class Fight(object):
-#     def enter(self):
-#         print("There are two fighters")
-#         print("Player")
-#         print("mob")
-
-#         Player_hit_points = 20
-#         mob_hit_points = 11
-#         Player = True
-#         mob = True
-
-#         while Player_hit_points > 0 or (not Player and not mob):
-#             player_attack = random.randint(4,12)
-#             mob_attack = random.randint(1,4)
-
-#             attack = int(raw_input("Type 1 to attack mob >"))
-
-#             if attack == 1:
-#                 if mob:
-#                     mob_hit_points -= player_attack
-#                     print("mob took %d hit points.") % player_attack
-#                 if mob_hit_points <= 0 and mob:
-#                             mob = False
-#                             print("mob has died")
-#             else:
-#                     pass
-            
-#             Player_hit_points -= mob_attack
-#             print("mob took %d from Player, Player has %d left.") % (mob_attack)
-        
-#         exit(1)
-
-#     a_fight = Fight()
-#     a_fight.enter()
 
 g = Game()
 
